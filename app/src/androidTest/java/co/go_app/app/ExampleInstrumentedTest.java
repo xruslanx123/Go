@@ -1,4 +1,4 @@
-package com.example.booni.go;
+package co.go_app.app;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getTargetContext();
 
-        assertEquals("com.example.booni.go", appContext.getPackageName());
+        assertEquals("co.go_app.app", appContext.getPackageName());
     }
 }
