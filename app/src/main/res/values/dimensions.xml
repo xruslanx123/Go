@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="toolbarArrow_height">48dp</dimen>
-    <dimen name="toolbarArrow_width">48dp</dimen>
+    <dimen name="toolbarArrow_height">56dp</dimen>
+    <dimen name="toolbarArrow_width">56dp</dimen>
+    <dimen name="toolbarArrow_half">28dp</dimen>
 </resources>
