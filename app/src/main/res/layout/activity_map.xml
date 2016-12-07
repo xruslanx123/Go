@@ -26,7 +26,9 @@
         <ImageView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:src="@drawable/logo"/>
+            android:layout_marginTop="5dp"
+            android:src="@drawable/toolbar_arrow"
+            android:rotation="-90"/>
     </LinearLayout>
 
 
