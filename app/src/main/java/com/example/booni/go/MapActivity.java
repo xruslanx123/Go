@@ -43,7 +43,6 @@ public class MapActivity extends FragmentActivity implements
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     Marker mMarker;
-    private ImageView toolbarLogo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
