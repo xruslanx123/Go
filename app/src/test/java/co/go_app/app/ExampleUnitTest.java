@@ -1,4 +1,4 @@
-package com.example.booni.go;
+package co.go_app.app;
 
 import org.junit.Test;
 

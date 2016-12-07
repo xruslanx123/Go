@@ -4,7 +4,7 @@ android {
     compileSdkVersion 24
     buildToolsVersion "25.0.1"
     defaultConfig {
-        applicationId "com.example.booni.go"
+        applicationId "co.go_app.app"
         minSdkVersion 19
         targetSdkVersion 24
         versionCode 1
