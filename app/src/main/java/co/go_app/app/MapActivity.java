@@ -10,6 +10,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -25,6 +26,12 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 
 /**
  * Inspiration from: http://stackoverflow.com/a/34582595
@@ -33,7 +40,8 @@ public class MapActivity extends FragmentActivity implements
         OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        LocationListener,
+        GoogleMap.OnMapLongClickListener {
 
     GoogleMap mMap;
     SupportMapFragment mMapFragment;
@@ -41,6 +49,9 @@ public class MapActivity extends FragmentActivity implements
     GoogleApiClient mGoogleApiClient;
     Location mLastLocation;
     Marker mMarker;
+    private DatabaseReference mDatabase;
+
+    private static final String TAG = "MapActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +60,7 @@ public class MapActivity extends FragmentActivity implements
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mMapFragment.getMapAsync(this);
+        mDatabase = FirebaseDatabase.getInstance().getReference();
     }
 
     @Override
@@ -90,6 +102,9 @@ public class MapActivity extends FragmentActivity implements
             buildGoogleApiClient();
             mMap.setMyLocationEnabled(true);
         }
+
+        fetchChallenges(false);
+        mMap.setOnMapLongClickListener(this);
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -216,5 +231,69 @@ public class MapActivity extends FragmentActivity implements
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+
+    private void addChallenge(Challenge challenge) {
+        DatabaseReference ref = mDatabase.child("challenges").push();
+        challenge.setKey(ref.getKey());
+        ref.setValue(challenge);
+    }
+
+    private void fetchChallenges(final boolean deleteAll) {
+        ChildEventListener childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
+
+                if (deleteAll) {
+                    dataSnapshot.getRef().removeValue();
+                } else {
+                    // A new challenge has been added, add it to the displayed list.
+                    Challenge challenge = dataSnapshot.getValue(Challenge.class);
+
+                    // Add it to the map.
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.position(challenge.retrieveLatLng());
+                    markerOptions.title(challenge.getTitle());
+                    markerOptions.snippet(challenge.getDescription());
+                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
+                    mMarker = mMap.addMarker(markerOptions);
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                Log.d(TAG, "TODO: onChildChanged()");
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "TODO: onChildRemoved()");
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+                Log.d(TAG, "TODO: onChildMoved()");
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d(TAG, "TODO: onCancelled()");
+            }
+        };
+
+        Query challenges = mDatabase.child("challenges");
+        challenges.addChildEventListener(childEventListener);
+    }
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+        addChallenge(new Challenge(
+                "Anis",
+                latLng.latitude,
+                latLng.longitude,
+                "Challenge by: " + "Anis",
+                "Challenge at " + latLng.toString(),
+                10));
     }
 }
