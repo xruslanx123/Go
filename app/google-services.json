@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "447477008701",
+    "firebase_url": "https://goapp-8bf40.firebaseio.com",
+    "project_id": "goapp-8bf40",
+    "storage_bucket": "goapp-8bf40.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:447477008701:android:8a7e43c59de272d1",
+        "android_client_info": {
+          "package_name": "co.go_app.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "447477008701-t7uise8utd2tnbre1amoe9fnivrs0j6p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "co.go_app.app",
+            "certificate_hash": "F51B2F9009201237D057C7C6788F09BBA4CE5187"
+          }
+        },
+        {
+          "client_id": "447477008701-ed7p47l4of4mkkq7dgt9d6rr6ico0grf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBF_2JoyRNNG03J5L17hzmTYio88jpb43U"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "447477008701-ed7p47l4of4mkkq7dgt9d6rr6ico0grf.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

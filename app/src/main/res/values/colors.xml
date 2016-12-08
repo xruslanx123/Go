@@ -3,5 +3,6 @@
     <color name="colorPrimary">#829ff3</color>
     <color name="colorPrimaryDark">#829ff3</color>
     <color name="colorAccent">#FF4081</color>
-    <color name="GoDark">#262d37</color>
+    <color name="goDark">#262d37</color>
+    <color name="reject">#f76386</color>
 </resources>

@@ -1,8 +1,11 @@
 package co.go_app.app;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -10,6 +13,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -25,6 +32,16 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.sothree.slidinguppanel.SlidingUpPanelLayout;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Inspiration from: http://stackoverflow.com/a/34582595
@@ -33,22 +50,59 @@ public class MapActivity extends FragmentActivity implements
         OnMapReadyCallback,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        LocationListener,
+        GoogleMap.OnMapClickListener,
+        GoogleMap.OnMarkerClickListener {
 
-    GoogleMap mMap;
-    SupportMapFragment mMapFragment;
-    LocationRequest mLocationRequest;
-    GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
-    Marker mMarker;
+    private GoogleMap mMap;
+    private SupportMapFragment mMapFragment;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+    private Location mLastLocation;
+    private Marker mMarker;
+    private Marker mPlusMarker;
+    private LatLng mPlusMarkerLatLng;
+    private DatabaseReference mDatabase;
+    private SlidingUpPanelLayout slidingUpPanelLayout;
+    private ImageView toolbarArrowImgView;
+    private HashMap<Marker, Challenge> mMarkers;
+    Activity thisActivity;
+
+    private static final String TAG = "MapActivity";
+    private ArrayList<Challenge> challenges;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+        challenges = new ArrayList<>();
+        challenges.add(new Challenge("Ruslan", 0, 0, "Best Challenge", "This is the best Challenge", 1000));
+        challenges.add(new Challenge("Niko", 0, 0, "An Ok Challenge", "This is an average Challenge", 100));
+        challenges.add(new Challenge("Anis", 0, 0, "Another CHallange", "This is another Challenge", 100));
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mMapFragment.getMapAsync(this);
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mMarkers = new HashMap<Marker, Challenge>();
+        thisActivity = this;
+        toolbarArrowImgView = (ImageView) findViewById(R.id.toolbar_arrow_img);
+        slidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
+        slidingUpPanelLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
+            @Override
+            public void onPanelSlide(View panel, float slideOffset) {
+
+            }
+
+            @Override
+            public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
+                if (newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED) || newState.equals(SlidingUpPanelLayout.PanelState.DRAGGING)){
+                    toolbarArrowImgView.setImageResource(R.drawable.toolbar_arrow);
+                } else {
+                    toolbarArrowImgView.setImageResource(R.drawable.logo);
+                }
+            }
+        });
     }
 
     @Override
@@ -90,6 +144,10 @@ public class MapActivity extends FragmentActivity implements
             buildGoogleApiClient();
             mMap.setMyLocationEnabled(true);
         }
+
+        fetchChallenges(false);
+        mMap.setOnMapClickListener(this);
+        mMap.setOnMarkerClickListener(this);
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -216,5 +274,114 @@ public class MapActivity extends FragmentActivity implements
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+
+    private void addChallenge(Challenge challenge) {
+        DatabaseReference ref = mDatabase.child("challenges").push();
+        challenge.setKey(ref.getKey());
+        ref.setValue(challenge);
+    }
+
+    private void fetchChallenges(final boolean deleteAll) {
+        ChildEventListener childEventListener = new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
+                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
+
+                if (deleteAll) {
+                    dataSnapshot.getRef().removeValue();
+                } else {
+                    // A new challenge has been added, add it to the displayed list.
+                    Challenge challenge = dataSnapshot.getValue(Challenge.class);
+                    // Add it to the map.
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.position(challenge.retrieveLatLng());
+                    markerOptions.title(challenge.getTitle());
+                    markerOptions.snippet(challenge.getDescription());
+                    markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
+                    mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                        @Override
+                        public View getInfoWindow(Marker marker) {
+                            return null;
+                        }
+
+                        @Override
+                        public View getInfoContents(Marker marker) {
+                            Challenge challenge = mMarkers.get(marker);
+                            View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
+                            ((TextView)view.findViewById(R.id.challenge_title)).setText(challenge.getTitle());
+                            //((TextView)view.findViewById(R.id.challenge_description)).setText(challenge.getDescription());
+                            ((TextView)view.findViewById(R.id.challenge_creator)).setText(challenge.getCreator());
+                            //((TextView)view.findViewById(R.id.challenge_points_reward)).setText(challenge.getReward());
+                            ((TextView)view.findViewById(R.id.challenge_points_reward)).setText("100");
+                            view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
+                            return view;
+                        }
+                    });
+                    mMarker = mMap.addMarker(markerOptions);
+                    mMarkers.put(mMarker, challenge);
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                Log.d(TAG, "TODO: onChildChanged()");
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                Log.d(TAG, "TODO: onChildRemoved()");
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+                Log.d(TAG, "TODO: onChildMoved()");
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.d(TAG, "TODO: onCancelled()");
+            }
+        };
+
+        Query challenges = mDatabase.child("challenges");
+        challenges.addChildEventListener(childEventListener);
+    }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        if (mPlusMarker != null) {
+            mPlusMarker.remove();
+            mPlusMarker = null;
+            return;
+        }
+
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(latLng);
+        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_add_circle_black_48dp));
+        mPlusMarker = mMap.addMarker(markerOptions);
+        mPlusMarkerLatLng = latLng;
+    }
+
+    // http://stackoverflow.com/questions/14226453/google-maps-api-v2-how-to-make-markers-clickable
+    static int counter = 0;
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+        if (marker.equals(mPlusMarker)) {
+            if(counter > 3)
+                return false;
+            Challenge temp = challenges.get(counter++);
+            addChallenge(new Challenge(
+                    temp.getCreator(),
+                    mPlusMarkerLatLng.latitude,
+                    mPlusMarkerLatLng.longitude,
+                    temp.getTitle(),
+                    temp.getDescription(),
+                    temp.getReward()));
+            mPlusMarker.remove();
+            mPlusMarker = null;
+            return true;
+        }
+        return false;
     }
 }

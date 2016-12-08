@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Go!</string>
     <string name="title_activity_map">Go!</string>
+    <string name="created_by">created by:</string>
 </resources>

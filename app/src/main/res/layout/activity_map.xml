@@ -21,14 +21,25 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_weight="0.85"
-        android:background="@color/GoDark">
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:background="@color/goDark">
 
         <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:layout_marginTop="5dp"
+            android:gravity="center_horizontal"
             android:src="@drawable/toolbar_arrow"
-            android:rotation="-90"/>
+            android:id="@+id/toolbar_arrow_img"
+            android:scaleX="0.85"
+            android:scaleY="0.85"/>
+        <ListView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="10"
+            android:id="@+id/my_challenges_listView"/>
     </LinearLayout>
 
 
