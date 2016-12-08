@@ -53,7 +53,6 @@ public class MapActivity extends FragmentActivity implements
         LocationListener,
         GoogleMap.OnMapClickListener,
         GoogleMap.OnMarkerClickListener {
-<<<<<<< HEAD
 
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
@@ -68,18 +67,7 @@ public class MapActivity extends FragmentActivity implements
     private ImageView toolbarArrowImgView;
     private HashMap<Marker, Challenge> mMarkers;
     private Activity thisActivity;
-
-    private static final String TAG = "MapActivity";
     private ArrayList<Challenge> challenges;
-    private GoogleMap mMap;
-    private SupportMapFragment mMapFragment;
-    private LocationRequest mLocationRequest;
-    private GoogleApiClient mGoogleApiClient;
-    private Location mLastLocation;
-    private Marker mMarker;
-    private Marker mPlusMarker;
-    private LatLng mPlusMarkerLatLng;
-    private DatabaseReference mDatabase;
 
     private static final String TAG = "MapActivity";
 
@@ -331,8 +319,6 @@ public class MapActivity extends FragmentActivity implements
                     });
                     mMarker = mMap.addMarker(markerOptions);
                     mMarkers.put(mMarker, challenge);
-                    markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW));
-                    mMarker = mMap.addMarker(markerOptions);
                 }
             }
 
