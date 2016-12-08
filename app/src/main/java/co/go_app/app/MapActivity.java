@@ -41,14 +41,17 @@ public class MapActivity extends FragmentActivity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
-        GoogleMap.OnMapLongClickListener {
+        GoogleMap.OnMapClickListener,
+        GoogleMap.OnMarkerClickListener {
 
-    GoogleMap mMap;
-    SupportMapFragment mMapFragment;
-    LocationRequest mLocationRequest;
-    GoogleApiClient mGoogleApiClient;
-    Location mLastLocation;
-    Marker mMarker;
+    private GoogleMap mMap;
+    private SupportMapFragment mMapFragment;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+    private Location mLastLocation;
+    private Marker mMarker;
+    private Marker mPlusMarker;
+    private LatLng mPlusMarkerLatLng;
     private DatabaseReference mDatabase;
 
     private static final String TAG = "MapActivity";
@@ -104,7 +107,8 @@ public class MapActivity extends FragmentActivity implements
         }
 
         fetchChallenges(false);
-        mMap.setOnMapLongClickListener(this);
+        mMap.setOnMapClickListener(this);
+        mMap.setOnMarkerClickListener(this);
     }
 
     protected synchronized void buildGoogleApiClient() {
@@ -287,13 +291,35 @@ public class MapActivity extends FragmentActivity implements
     }
 
     @Override
-    public void onMapLongClick(LatLng latLng) {
-        addChallenge(new Challenge(
-                "Anis",
-                latLng.latitude,
-                latLng.longitude,
-                "Challenge by: " + "Anis",
-                "Challenge at " + latLng.toString(),
-                10));
+    public void onMapClick(LatLng latLng) {
+        if (mPlusMarker != null) {
+            mPlusMarker.remove();
+            mPlusMarker = null;
+            return;
+        }
+
+        MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.position(latLng);
+        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE));
+        mPlusMarker = mMap.addMarker(markerOptions);
+        mPlusMarkerLatLng = latLng;
+    }
+
+    // http://stackoverflow.com/questions/14226453/google-maps-api-v2-how-to-make-markers-clickable
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+        if (marker.equals(mPlusMarker)) {
+            addChallenge(new Challenge(
+                    "Anis",
+                    mPlusMarkerLatLng.latitude,
+                    mPlusMarkerLatLng.longitude,
+                    "Challenge by: " + "Anis",
+                    "Challenge at " + mPlusMarkerLatLng.toString(),
+                    10));
+            mPlusMarker.remove();
+            mPlusMarker = null;
+            return true;
+        }
+        return false;
     }
 }
