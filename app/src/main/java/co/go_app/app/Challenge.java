@@ -18,7 +18,8 @@ public class Challenge {
     public String title;
     public String description;
     public int reward;
-
+    public int type;
+    
     public Challenge() {
         // Default constructor required for calls to DataSnapshot.getValue(Challenge.class)
     }
@@ -28,7 +29,8 @@ public class Challenge {
                      double longitude,
                      String title,
                      String description,
-                     Integer reward) {
+                     Integer reward,
+                     Integer type) {
         this.key = "";
         this.creator = creator;
         this.latitude = latitude;
@@ -36,6 +38,7 @@ public class Challenge {
         this.title = title;
         this.description = description;
         this.reward = reward;
+        this.type = type;
     }
 
     public String getKey() {
