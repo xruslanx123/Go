@@ -1,5 +1,7 @@
 # Go!
+
 Environmental and Social Challenges Platform- Soon Will Be Availible For Android.
+
 <a href="http://go-app.co">go-app.co</a>
 
 <a href="https://invis.io/7F9ORADAW">Prototype</a>
@@ -12,9 +14,9 @@ Environmental and Social Challenges Platform- Soon Will Be Availible For Android
  
  Here is a list of what you could do with Go!:
  
- Create simple challenges
- Make guides/tours to share your knowlage about locations or informatiom about places
- Create challenges for school trips, family vacations or social events(private, public or combined)
- And most important invent your own ways of using this platform
+ Create simple challenges.<br>
+ Make guides/tours to share your knowlage about locations or informatiom about places.<br>
+ Create challenges for school trips, family vacations or social events(private, public or combined).<br>
+ And most important invent your own ways of using this platform.<br>
  
  Also, offcourse participate in challenges made by others.
