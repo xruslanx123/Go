@@ -1,8 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape android:shape="rectangle"
+<vector
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:height="256dp"
+    android:width="256dp"
+    anroid:viewportHeight="24"
+    android:viewportWidth="32"
     >
-    <solid android:color="@color/colorPrimary"/>
-    <size android:width="48dp" android:height="2dp"/>
-    <corners android:radius="2dp"/>
-</shape>
+    <path
+          android:strokeColor="#8fff"
+          android:strokeWidth="5"
+      android:pathData="M0,24
+                         L16,0
+                         L32,24/>
+</vector>
