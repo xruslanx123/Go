@@ -5,4 +5,6 @@
     <color name="colorAccent">#FF4081</color>
     <color name="goDark">#262d37</color>
     <color name="reject">#f76386</color>
+    <color name="just_white">#fff</color>
+    <color name="grey">#313d4d</color>
 </resources>

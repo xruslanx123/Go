@@ -21,11 +21,13 @@ public class ChallengeListArrayAdapter extends ArrayAdapter {
     private ArrayList<Challenge> challengesList;
     private Location currentLocation;
     private long updateTimeStapm;
+    private boolean myChallenges;
 
-    public ChallengeListArrayAdapter(Activity activity, ArrayList<Challenge> challengesList) {
+    public ChallengeListArrayAdapter(Activity activity, ArrayList<Challenge> challengesList, boolean myChallenges) {
         super(activity, R.layout.challenge_list_item, challengesList);
         this.activity = activity;
         this.challengesList = challengesList;
+        this.myChallenges = myChallenges;
     }
 
     public void updateLocation(Location location){
@@ -50,18 +52,23 @@ public class ChallengeListArrayAdapter extends ArrayAdapter {
             viewContainer = (ViewContainer) convertView.getTag();
         }
         viewContainer.creator.setText(challengesList.get(position).creator);
-        if(viewContainer.updateTimeStamp < updateTimeStapm){
-            Location challengeLoc = challengesList.get(position).retrieveLocation();
-            double distanceMeters = distFrom(challengeLoc.getLatitude(), challengeLoc.getLongitude(),
-                    currentLocation.getLatitude(), currentLocation.getLongitude());
-            String distanceText = "m";
-            if(distanceMeters >=1000){
-                distanceMeters/=1000;
-                distanceText = "km";
+        if (myChallenges){
+            viewContainer.distance.setVisibility(View.GONE);
+        } else {
+            viewContainer.distance.setVisibility(View.VISIBLE);
+            if (viewContainer.updateTimeStamp < updateTimeStapm) {
+                Location challengeLoc = challengesList.get(position).retrieveLocation();
+                double distanceMeters = distFrom(challengeLoc.getLatitude(), challengeLoc.getLongitude(),
+                        currentLocation.getLatitude(), currentLocation.getLongitude());
+                String distanceText = "m";
+                if (distanceMeters >= 1000) {
+                    distanceMeters /= 1000;
+                    distanceText = "km";
+                }
+                distanceText = new DecimalFormat("##.#").format(distanceMeters) + distanceText;
+                viewContainer.distance.setText(distanceText);
+                viewContainer.updateTimeStamp = System.currentTimeMillis();
             }
-            distanceText = new DecimalFormat("##.#").format(distanceMeters) + distanceText;
-            viewContainer.distance.setText(distanceText);
-            viewContainer.updateTimeStamp = System.currentTimeMillis();
         }
         viewContainer.title.setText(challengesList.get(position).getTitle());
         viewContainer.description.setText(challengesList.get(position).getDescription());

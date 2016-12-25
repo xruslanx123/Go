@@ -2,4 +2,20 @@
     <string name="app_name">Go!</string>
     <string name="title_activity_map">Go!</string>
     <string name="created_by">created by:</string>
+    <string name="title">Title*</string>
+    <string name="choose_a_type">Choose a type</string>
+    <string name="add_a_short_description">add a short description about the challenge(optional).</string>
+    <string name="reward">Reward:</string>
+    <string name="points_warning">(points will be taken from you!)</string>
+    <string name="change_location">Change Location*</string>
+    <string name="no_location">no location</string>
+    <string name="description">Description:</string>
+    <string name="set_location">Set Location</string>
+
+    <string name="progress_dialog_signing_up">Creating your shiny new account...</string>
+
+    <string name="facebook_application_id" translatable="false">192853844511465</string>
+    <string name="facebook_login_protocol_scheme" translatable="false">fb192853844511465</string>
+
+
 </resources>

@@ -37,8 +37,74 @@ public class NewChallengeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_new_challenge);
 
         titleInput = (EditText) findViewById(R.id.new_challenge_title);
+        titleInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if(editable.toString().equals("")){
+                    titleFlag = false;
+                    finishButton.setEnabled(false);
+                }else {
+                    titleFlag = true;
+                    if(locationFlag){
+                        finishButton.setEnabled(true);
+                    }
+                }
+                title = editable.toString();
+            }
+        });
         descriptionInput = (EditText) findViewById(R.id.new_challenge_description);
+        descriptionInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                description = editable.toString();
+            }
+        });
         rewardInput = (EditText) findViewById(R.id.new_challenge_reward);
+        rewardInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                while (editable.length() > 1 && editable.charAt(0) == '0') {
+                    editable = editable.delete(0, 1);
+                }
+                if(editable.length() == 1 && editable.charAt(0) == '0'){
+                    editable.clear();
+                    reward = 0;
+                    return;
+                }
+                if(editable.length() > 0)
+                    reward = Integer.valueOf(editable.toString());
+            }
+        });
 
         changeLocationButton = (Button) findViewById(R.id.new_challenge_location_change_button);
         changeLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -67,44 +133,25 @@ public class NewChallengeActivity extends AppCompatActivity {
         }
         if(getIntent().hasExtra("TITLE")){
             title = getIntent().getStringExtra("TITLE");
-            if(!title.equals(""))
+            if(title != null && !title.equals("")) {
                 titleFlag = true;
+                titleInput.setText(title);
+            }
         }
         if(getIntent().hasExtra("DESCRIPTION")){
             description = getIntent().getStringExtra("DESCRIPTION");
+            descriptionInput.setText(description);
         }
         if(getIntent().hasExtra("REWARD")){
             reward = getIntent().getIntExtra("REWARD", 0);
+            rewardInput.setText(String.valueOf(reward));
         }
         if(getIntent().hasExtra("TYPE")){
             type = getIntent().getIntExtra("TYPE", 1);
         }
 
 
-        titleInput.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
 
-            }
-
-            @Override
-            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable editable) {
-                if(editable.toString().equals("")){
-                    titleFlag = false;
-                    finishButton.setEnabled(false);
-                }else {
-                    titleFlag = true;
-                    if(locationFlag){
-                        finishButton.setEnabled(true);
-                    }
-                }
-            }
-        });
 
     }
 
@@ -114,23 +161,15 @@ public class NewChallengeActivity extends AppCompatActivity {
 
     //TODO changeLocation needs to open map to point to the location.
     private void changeLocation(){
-        SharedPreferences.Editor sharedPreferences = getSharedPreferences(SAVED_FIELDS, MODE_PRIVATE).edit();
-        sharedPreferences.putString("TITLE", title);
-        sharedPreferences.putString("DESCRIPTION", description);
-        sharedPreferences.putInt("REWARD", reward);
-        sharedPreferences.putInt("TYPE", type);
-        sharedPreferences.apply();
-        setResult(RESULT_FIRST_USER);
+        Intent data = new Intent();
+        data.putExtra("LATITUDE", latitude);
+        data.putExtra("LONGITUDE", longitude);
+        data.putExtra("TITLE", title);
+        data.putExtra("DESCRIPTION", description);
+        data.putExtra("REWARD", reward);
+        data.putExtra("TYPE", type);
+        setResult(RESULT_FIRST_USER, data);
         finish();
-    }
-
-    private void updateFields(){
-        title = titleInput.getText().toString();
-        description = descriptionInput.getText().toString();
-        String rewardText = rewardInput.getText().toString();
-        if(!rewardText.equals("")){
-            reward = Integer.valueOf(rewardText);
-        }
     }
 
     public void finishBtn(){
@@ -138,8 +177,6 @@ public class NewChallengeActivity extends AppCompatActivity {
         if (sharedPreferences.getBoolean("NO_WARNING_FLAG", false)){
             //TODO create warning fragment.
         }
-
-        updateFields();
 
         Intent data = new Intent();
         data.putExtra("LATITUDE", latitude);

@@ -5,20 +5,56 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="bottom"
-    sothree:umanoPanelHeight="56dp"
+    sothree:umanoPanelHeight="48dp"
     sothree:umanoShadowHeight="4dp"
     sothree:umanoFadeColor="@android:color/transparent"
     >
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="match_parent"
         android:layout_height="match_parent"
-     />   
+        android:id="@+id/map_layout">
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:gravity="center_horizontal"
+            android:text="@string/set_location"
+            android:id="@+id/set_location_map_button"
+            android:visibility="gone"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_alignParentTop="true"
+            android:background="@android:color/transparent"
+            android:id="@+id/info_window_buttons"
+            android:visibility="gone">
+            <Button
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:background="@color/colorPrimary"
+                android:text="Go!"
+                android:textColor="#fff"
+                android:id="@+id/pop_up_go"/>
+            <Button
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:layout_margin="20dp"
+                android:background="@color/reject"
+                android:text="Reject"
+                android:textColor="#fff"
+                android:id="@+id/pop_up_reject"/>
+        </LinearLayout>
      </RelativeLayout>
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,23 +62,97 @@
         android:layout_weight="0.85"
         android:orientation="vertical"
         android:gravity="center_horizontal"
+        android:id="@+id/toolbar_layout"
         android:background="@color/goDark">
-
-        <ImageView
+        <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_marginTop="5dp"
             android:gravity="center_horizontal"
-            android:src="@drawable/toolbar_arrow"
-            android:id="@+id/toolbar_arrow_img"
             android:scaleX="0.85"
-            android:scaleY="0.85"/>
-        <ListView
+            android:scaleY="0.85"
+            android:id="@+id/toolbar_logo_frame">
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/toolbar_arrow"
+                android:id="@+id/toolbar_arrow_img"/>
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/logo"
+                android:alpha="0"
+                android:id="@+id/toolbar_logo_img"/>
+        </FrameLayout>
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:src="@drawable/separator_shape" />
+        <TabHost
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="10"
-            android:id="@+id/my_challenges_listView"/>
+            android:id="@+id/tabHost">
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@android:id/tabcontent">
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/acct_settings">
+                        <de.hdodenhof.circleimageview.CircleImageView
+                            android:layout_width="80dp"
+                            android:layout_height="80dp"
+                            android:layout_marginStart="20dp"
+                            android:layout_marginTop="8dp"
+                            android:id="@+id/acct_photo"
+                            sothree:civ_border_width="2dp"
+                            sothree:civ_border_color="@color/grey"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/acct_name"
+                            android:textSize="24sp"
+                            android:layout_marginStart="30dp"
+                            android:textColor="#fff"
+                            android:shadowColor="@color/goDark"
+                            android:layout_toEndOf="@id/acct_photo"
+                            android:layout_alignBottom="@id/acct_photo"/>
+                    </RelativeLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/nearby_list"/>
+                    <ListView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/my_list"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/new_challenge"/>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/settings"/>
+
+                </FrameLayout>
+                <TabWidget
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@android:id/tabs"
+                    android:layout_alignParentBottom="true"/>
+            </RelativeLayout>
+        </TabHost>
+
+
     </LinearLayout>
 
 

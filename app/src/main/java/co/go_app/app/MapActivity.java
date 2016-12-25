@@ -3,19 +3,27 @@ package co.go_app.app;
 import android.Manifest;
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TabHost;
+import android.widget.TabWidget;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +40,8 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.sothree.slidinguppanel.SlidingUpPanelLayout;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -40,6 +50,14 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -48,26 +66,41 @@ import java.util.HashMap;
  */
 public class MapActivity extends FragmentActivity implements
         OnMapReadyCallback,
+        GoogleMap.OnMarkerClickListener,
+        GoogleMap.OnMapLongClickListener,
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
-        GoogleMap.OnMapClickListener,
-        GoogleMap.OnMarkerClickListener {
+        GoogleMap.OnMapClickListener {
 
+    public static final int NEW_CHALLENGE_REQUEST_CODE = 101;
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
     private LocationRequest mLocationRequest;
     private GoogleApiClient mGoogleApiClient;
-    private Location mLastLocation;
     private Marker mMarker;
     private Marker mPlusMarker;
-    private LatLng mPlusMarkerLatLng;
+    private Marker newChallengePointer;
     private DatabaseReference mDatabase;
     private SlidingUpPanelLayout slidingUpPanelLayout;
-    private ImageView toolbarArrowImgView;
+    private ImageView toolbarArrowImg, toolbarLogoImg;
     private HashMap<Marker, Challenge> mMarkers;
     private Activity thisActivity;
-    private ArrayList<Challenge> challenges;
+    private boolean newChallengeMode = false;
+    private Button changeLocationForNewChallengeBtn;
+    private boolean firstLocation, userPhotoAvalible;
+    private TabHost tabHost;
+    private TabWidget tabWidget;
+    private ArrayList<ImageView> widgetButtons;
+    private Challenge savedData, selectedChallenge;
+    private Marker selectedMarker;
+    private LinearLayout infoWindowButtons;
+    private FirebaseUser currentUser;
+    private Bitmap userPhoto;
+    private ImageView acctPhotoHolder;
+    private ListView myChallengesListView;
+    private ArrayList<Challenge> myChallenges;
+
 
     private static final String TAG = "MapActivity";
 
@@ -75,54 +108,137 @@ public class MapActivity extends FragmentActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        challenges = new ArrayList<>();
-        challenges.add(new Challenge("Ruslan", 0, 0, "Best Challenge", "This is the best Challenge", 1000));
-        challenges.add(new Challenge("Niko", 0, 0, "An Ok Challenge", "This is an average Challenge", 100));
-        challenges.add(new Challenge("Anis", 0, 0, "Another CHallange", "This is another Challenge", 100));
+
+        // check for user authentication and get info;
+        // if no authentication is available close this activity and return to LoginActivity.
+        currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if(currentUser == null){
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+        }
+        // set account info for acct_settings
+        acctPhotoHolder = (ImageView) findViewById(R.id.acct_photo);
+        TextView acctName = (TextView)findViewById(R.id.acct_name);
+        acctName.setText(currentUser.getDisplayName());
+        checkPhoto(true);
+
+        firstLocation = true; // boolean to center map on location on startUp;
+
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mMapFragment.getMapAsync(this);
         mDatabase = FirebaseDatabase.getInstance().getReference();
-        mMarkers = new HashMap<Marker, Challenge>();
+        mMarkers = new HashMap<>();
         thisActivity = this;
-        toolbarArrowImgView = (ImageView) findViewById(R.id.toolbar_arrow_img);
+        toolbarArrowImg = (ImageView) findViewById(R.id.toolbar_arrow_img);
+        toolbarLogoImg = (ImageView) findViewById(R.id.toolbar_logo_img);
         slidingUpPanelLayout = (SlidingUpPanelLayout) findViewById(R.id.sliding_layout);
         slidingUpPanelLayout.addPanelSlideListener(new SlidingUpPanelLayout.PanelSlideListener() {
             @Override
             public void onPanelSlide(View panel, float slideOffset) {
-
+                toolbarArrowImg.setAlpha(1-slideOffset);
+                toolbarLogoImg.setAlpha(slideOffset);
             }
 
             @Override
             public void onPanelStateChanged(View panel, SlidingUpPanelLayout.PanelState previousState, SlidingUpPanelLayout.PanelState newState) {
-                if (newState.equals(SlidingUpPanelLayout.PanelState.COLLAPSED) || newState.equals(SlidingUpPanelLayout.PanelState.DRAGGING)){
-                    toolbarArrowImgView.setImageResource(R.drawable.toolbar_arrow);
-                } else {
-                    toolbarArrowImgView.setImageResource(R.drawable.logo);
+                if(newState == SlidingUpPanelLayout.PanelState.COLLAPSED){
+                    widgetButtons.get(2).callOnClick();
                 }
             }
         });
+        changeLocationForNewChallengeBtn = (Button) findViewById(R.id.set_location_map_button);
+        changeLocationForNewChallengeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setLocationToNewChallenge();
+            }
+        });
+
+        tabHost = (TabHost) findViewById(R.id.tabHost);
+        tabWidget = (TabWidget) findViewById(android.R.id.tabs);
+
+        infoWindowButtons = (LinearLayout) findViewById(R.id.info_window_buttons);
+        findViewById(R.id.pop_up_go).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //TODO: add challenge
+                selectedMarker.hideInfoWindow();
+                selectedChallenge = null;
+                selectedMarker = null;
+                infoWindowButtons.setVisibility(View.GONE);
+            }
+        });
+        findViewById(R.id.pop_up_reject).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                selectedMarker.hideInfoWindow();
+                selectedChallenge = null;
+                selectedMarker = null;
+                infoWindowButtons.setVisibility(View.GONE);
+            }
+        });
+
+        tabHost.setup();
+        //TODO: improve image and tab buttons placement code
+        widgetButtons = new ArrayList<>();
+        ImageView img = new ImageView(this);
+        img.setTag(0);
+        img.setImageResource(R.drawable.idle_temp_white);
+        widgetButtons.add(img);
+        img = new ImageView(this);
+        img.setTag(1);
+        img.setImageResource(R.drawable.idle_temp_white);
+        widgetButtons.add(img);
+        img = new ImageView(this);
+        img.setTag(2);
+        img.setImageResource(R.drawable.pressed_temp);
+        widgetButtons.add(img);
+        img = new ImageView(this);
+        img.setTag(3);
+        img.setImageResource(R.drawable.idle_temp_white);
+        widgetButtons.add(img);
+        img = new ImageView(this);
+        img.setTag(4);
+        img.setImageResource(R.drawable.idle_temp_white);
+        widgetButtons.add(img);
+
+        tabHost.addTab(tabHost.newTabSpec("ACCT_SETTINGS")
+                .setIndicator(widgetButtons.get(0))
+                .setContent(R.id.acct_settings));
+        tabHost.addTab(tabHost.newTabSpec("NEARBY")
+                .setIndicator(widgetButtons.get(1))
+                .setContent(R.id.nearby_list));
+        tabHost.addTab(tabHost.newTabSpec("MY")
+                .setIndicator(widgetButtons.get(2))
+                .setContent(R.id.my_list));
+        tabHost.addTab(tabHost.newTabSpec("NEW_CHALLENGE")
+                .setIndicator(widgetButtons.get(3))
+                .setContent(R.id.new_challenge));
+        tabHost.addTab(tabHost.newTabSpec("SETTINGS")
+                .setIndicator(widgetButtons.get(4))
+                .setContent(R.id.settings));
+        tabHost.setCurrentTab(2);
+        View.OnClickListener clickListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for(ImageView img: widgetButtons){
+                    img.setImageResource(R.drawable.idle_temp_white);
+                }
+                tabHost.setCurrentTab((int)view.getTag());
+                ((ImageView)view).setImageResource(R.drawable.pressed_temp);
+            }
+        };
+        tabWidget.getChildAt(0).setOnClickListener(clickListener);
+        tabWidget.getChildAt(1).setOnClickListener(clickListener);
+        tabWidget.getChildAt(2).setOnClickListener(clickListener);
+        tabWidget.getChildAt(3).setOnClickListener(clickListener);
+        tabWidget.getChildAt(4).setOnClickListener(clickListener);
+
+        setMyChallengesTab();
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
 
-        //stop location updates when Activity is no longer active
-        if (mGoogleApiClient != null) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-        }
-    }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -147,6 +263,25 @@ public class MapActivity extends FragmentActivity implements
 
         fetchChallenges(false);
         mMap.setOnMapClickListener(this);
+        mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDragStart(Marker marker) {
+                newChallengePointer.hideInfoWindow();
+            }
+
+            @Override
+            public void onMarkerDrag(Marker marker) {
+
+            }
+
+            @Override
+            public void onMarkerDragEnd(Marker marker) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLng(marker.getPosition()));
+                newChallengePointer.showInfoWindow();
+            }
+        });
+        mMap.setOnMapClickListener(this);
+        mMap.setOnMapLongClickListener(this);
         mMap.setOnMarkerClickListener(this);
     }
 
@@ -164,7 +299,7 @@ public class MapActivity extends FragmentActivity implements
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(1000);
         mLocationRequest.setFastestInterval(1000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY); // TODO: check for in challenge priority
         if (ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -182,24 +317,10 @@ public class MapActivity extends FragmentActivity implements
 
     @Override
     public void onLocationChanged(Location location) {
-        mLastLocation = location;
-        if (mMarker != null) {
-            mMarker.remove();
+        if(firstLocation){
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 17));
+            firstLocation = false;
         }
-
-        //Place current location marker
-        LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
-        markerOptions.title("Current Position");
-        markerOptions.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED));
-        mMarker = mMap.addMarker(markerOptions);
-
-        //move map camera
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(11));
-
-        //optionally, stop location updates if only current location is needed
         if (mGoogleApiClient != null) {
             LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
         }
@@ -296,26 +417,33 @@ public class MapActivity extends FragmentActivity implements
                     // Add it to the map.
                     MarkerOptions markerOptions = new MarkerOptions();
                     markerOptions.position(challenge.retrieveLatLng());
-                    markerOptions.title(challenge.getTitle());
-                    markerOptions.snippet(challenge.getDescription());
                     markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
                     mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
                         @Override
-                        public View getInfoWindow(Marker marker) {
-                            return null;
+                        public View getInfoWindow(final Marker marker) {
+                            if(marker.equals(mPlusMarker)){
+                                createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
+                                mPlusMarker.remove();
+                                mPlusMarker = null;
+                                return null;
+                            }else if(marker.equals(newChallengePointer)){
+                                return null;
+                            }
+                            selectedChallenge = mMarkers.get(marker);
+                            View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
+                            ((TextView)view.findViewById(R.id.challenge_title)).setText(selectedChallenge.getTitle());
+                            ((TextView)view.findViewById(R.id.challenge_description)).setText(selectedChallenge.getDescription());
+                            ((TextView)view.findViewById(R.id.challenge_creator)).setText(selectedChallenge.getCreator());
+                            ((TextView)view.findViewById(R.id.challenge_points_reward)).setText(String.valueOf(selectedChallenge.getReward()));
+                            view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
+                            selectedMarker = marker;
+                            return view;
                         }
 
                         @Override
                         public View getInfoContents(Marker marker) {
-                            Challenge challenge = mMarkers.get(marker);
-                            View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
-                            ((TextView)view.findViewById(R.id.challenge_title)).setText(challenge.getTitle());
-                            //((TextView)view.findViewById(R.id.challenge_description)).setText(challenge.getDescription());
-                            ((TextView)view.findViewById(R.id.challenge_creator)).setText(challenge.getCreator());
-                            //((TextView)view.findViewById(R.id.challenge_points_reward)).setText(challenge.getReward());
-                            ((TextView)view.findViewById(R.id.challenge_points_reward)).setText("100");
-                            view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
-                            return view;
+                            return null;
                         }
                     });
                     mMarker = mMap.addMarker(markerOptions);
@@ -349,39 +477,218 @@ public class MapActivity extends FragmentActivity implements
     }
 
     @Override
-    public void onMapClick(LatLng latLng) {
-        if (mPlusMarker != null) {
+    public boolean onMarkerClick(Marker marker) {
+        if(marker.equals(mPlusMarker)){
+            createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
             mPlusMarker.remove();
             mPlusMarker = null;
-            return;
-        }
-
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.position(latLng);
-        markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_add_circle_black_48dp));
-        mPlusMarker = mMap.addMarker(markerOptions);
-        mPlusMarkerLatLng = latLng;
-    }
-
-    // http://stackoverflow.com/questions/14226453/google-maps-api-v2-how-to-make-markers-clickable
-    static int counter = 0;
-    @Override
-    public boolean onMarkerClick(final Marker marker) {
-        if (marker.equals(mPlusMarker)) {
-            if(counter > 3)
-                return false;
-            Challenge temp = challenges.get(counter++);
-            addChallenge(new Challenge(
-                    temp.getCreator(),
-                    mPlusMarkerLatLng.latitude,
-                    mPlusMarkerLatLng.longitude,
-                    temp.getTitle(),
-                    temp.getDescription(),
-                    temp.getReward()));
-            mPlusMarker.remove();
-            mPlusMarker = null;
-            return true;
         }
         return false;
     }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        if(!newChallengeMode && slidingUpPanelLayout.getPanelState() != SlidingUpPanelLayout.PanelState.COLLAPSED)
+            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+        if(newChallengeMode){
+            newChallengePointer.setPosition(latLng);
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+            newChallengePointer.showInfoWindow();
+        }
+        if (mPlusMarker != null) {
+            mPlusMarker.remove();
+            mPlusMarker = null;
+        }
+    }
+
+    @Override
+    public void onMapLongClick(LatLng latLng) {
+        if(mPlusMarker != null){
+            mPlusMarker.remove();
+            mPlusMarker = null;
+        }
+        if(!newChallengeMode) {
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.position(latLng);
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.new_challenge));
+            mPlusMarker = mMap.addMarker(markerOptions);
+        }
+    }
+
+    private void createNewChallenge(){
+        createNewChallenge(mMap.getCameraPosition().target.latitude, mMap.getCameraPosition().target.longitude);
+    }
+
+    private void createNewChallenge(Double latitude, Double longitude){
+        Intent intent = new Intent(this, NewChallengeActivity.class);
+        if (latitude != null){
+            intent.putExtra("LATITUDE", latitude);
+        }
+        if (latitude != null){
+            intent.putExtra("LONGITUDE", longitude);
+        }
+        startActivityForResult(intent, NEW_CHALLENGE_REQUEST_CODE);
+    }
+
+    private void setNewChallengeMode(boolean setMode){
+        for(Marker marker: mMarkers.keySet()){
+            marker.setVisible(!setMode);
+        }
+        newChallengeMode = setMode;
+        changeLocationForNewChallengeBtn.setEnabled(setMode);
+
+        if(setMode) {
+
+            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.HIDDEN);
+            changeLocationForNewChallengeBtn.setVisibility(View.VISIBLE);
+            if(mPlusMarker != null){
+                mPlusMarker.remove();
+                mPlusMarker = null;
+            }
+            if(newChallengePointer == null) {
+                MarkerOptions newChallengePointerOptions = new MarkerOptions();
+                newChallengePointerOptions.draggable(true);
+                Bitmap locationPointer = BitmapFactory.decodeResource(getResources(), R.drawable.new_challenge_black);
+                newChallengePointerOptions.icon(BitmapDescriptorFactory.fromBitmap(locationPointer));
+                newChallengePointerOptions.position(new LatLng(savedData.getLatitude(), savedData.getLongitude()));
+                newChallengePointer = mMap.addMarker(newChallengePointerOptions);
+                newChallengePointer.setDraggable(true);
+            }
+        }
+        else {
+            slidingUpPanelLayout.setPanelState(SlidingUpPanelLayout.PanelState.COLLAPSED);
+            changeLocationForNewChallengeBtn.setVisibility(View.GONE);
+            if(newChallengePointer != null){
+                newChallengePointer.remove();
+                newChallengePointer = null;
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == NEW_CHALLENGE_REQUEST_CODE){
+            if(resultCode == RESULT_OK) {
+                setNewChallengeMode(false);
+                if (mPlusMarker != null) {
+                    mPlusMarker.remove();
+                    mPlusMarker = null;
+                }
+                addChallenge(extractChallengeFromBundle(data));
+                savedData = null;
+
+            }else if(resultCode == RESULT_FIRST_USER){
+                savedData = extractChallengeFromBundle(data);
+                setNewChallengeMode(true);
+
+            }else if(resultCode == RESULT_CANCELED){
+                setNewChallengeMode(false);
+                savedData = null;
+            }
+        }
+    }
+
+    private void setLocationToNewChallenge(){
+        Intent intent = new Intent(this, NewChallengeActivity.class);
+        intent.putExtra("LATITUDE", newChallengePointer.getPosition().latitude);
+        intent.putExtra("LONGITUDE", newChallengePointer.getPosition().longitude);
+        intent.putExtra("TITLE", savedData.title);
+        intent.putExtra("DESCRIPTION", savedData.description);
+        intent.putExtra("REWARD", savedData.reward);
+        intent.putExtra("TYPE", savedData.type);
+        startActivityForResult(intent, NEW_CHALLENGE_REQUEST_CODE);
+    }
+
+    private Challenge extractChallengeFromBundle(Intent bundle){
+        if(!bundle.hasExtra("LATITUDE") || !bundle.hasExtra("LONGITUDE")){
+
+        }
+        double latitude = bundle.getDoubleExtra("LATITUDE", 0);
+        double longitude = bundle.getDoubleExtra("LONGITUDE", 0);
+        String title = bundle.getStringExtra("TITLE");
+        String description = bundle.getStringExtra("DESCRIPTION");
+        int reward = bundle.getIntExtra("REWARD", 0);
+        int type = bundle.getIntExtra("TYPE", 1);
+        Challenge challenge = new Challenge(currentUser.getDisplayName(),currentUser.getUid() , latitude, longitude, title, description, reward, type);
+        return challenge;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(newChallengeMode){
+            Intent intent = new Intent(this, NewChallengeActivity.class);
+            intent.putExtra("LATITUDE", savedData.latitude);
+            intent.putExtra("LONGITUDE", savedData.longitude);
+            intent.putExtra("TITLE", savedData.title);
+            intent.putExtra("DESCRIPTION", savedData.description);
+            intent.putExtra("REWARD", savedData.reward);
+            intent.putExtra("TYPE", savedData.type);
+            startActivityForResult(intent, NEW_CHALLENGE_REQUEST_CODE);
+        }
+        super.onBackPressed();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+
+        //stop location updates when Activity is no longer active
+        if (mGoogleApiClient != null) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        }
+    }
+
+    private void checkPhoto(boolean checkInMemory){
+        if(checkInMemory) {
+            String filePath = Environment.getExternalStorageDirectory() + File.separator+"Android"+File.separator+"data"+File.separator+"co.app-go"+File.separator+"upBM.bm";
+            File photoFile = new File(filePath);
+            if(photoFile.exists()){
+                userPhoto = BitmapFactory.decodeFile(filePath);
+                userPhotoAvalible = true;
+                acctPhotoHolder.setImageBitmap(userPhoto);
+                return;
+            }
+        }
+        AsyncTask<String, Void, Bitmap> photoPullAsync = new AsyncTask<String, Void, Bitmap>() {
+            Bitmap photo = null;
+
+            @Override
+            protected Bitmap doInBackground(String... strings) {
+                try {
+                    System.out.println("get photo from url");
+                    URL url = new URL(strings[0]);
+                    URLConnection connection = url.openConnection();
+                    connection.connect();
+                    InputStream inputStream = connection.getInputStream();
+                    BufferedInputStream buffer = new BufferedInputStream(inputStream);
+                    photo = BitmapFactory.decodeStream(buffer);
+                    buffer.close();
+                    inputStream.close();
+                    FileOutputStream fileOutputStream = new FileOutputStream(Environment.getExternalStorageDirectory() + File.separator+"Android"+File.separator+"data"+File.separator+"co.app-go"+File.separator+"upBM.bm");
+                    photo.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream);
+                    fileOutputStream.close();
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return photo;
+            }
+
+            @Override
+            protected void onPostExecute(Bitmap bitmap) {
+                userPhoto = bitmap;
+                userPhotoAvalible = true;
+                acctPhotoHolder.setImageBitmap(userPhoto);
+            }
+        };
+        photoPullAsync.execute(currentUser.getPhotoUrl().toString());
+    }
+
+    private void setMyChallengesTab(){
+        myChallengesListView = (ListView) findViewById(R.id.my_list);
+        myChallengesListView.setAdapter(new ChallengeListArrayAdapter(thisActivity, myChallenges, true));
+    }
+
+
 }

@@ -13,6 +13,7 @@ public class Challenge {
 
     public String key;
     public String creator;
+    public String creatorId;
     public double latitude;
     public double longitude;
     public String title;
@@ -21,10 +22,11 @@ public class Challenge {
     public int type;
     
     public Challenge() {
-        // Default constructor required for calls to DataSnapshot.getValue(Challenge.class)
+        // Default constructor
     }
 
     public Challenge(String creator,
+                     String creatorId,
                      double latitude,
                      double longitude,
                      String title,
@@ -39,6 +41,21 @@ public class Challenge {
         this.description = description;
         this.reward = reward;
         this.type = type;
+    }
+
+    public String getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(String creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+    public Integer getType(){
+        return this.type;
     }
 
     public String getKey() {
@@ -116,5 +133,19 @@ public class Challenge {
 
     public void setReward(int reward) {
         this.reward = reward;
+    }
+
+    @Override
+    public String toString() {
+        return "Title: "+title+"\n"
+                +"Description: " +description+"\n"
+                +"("+latitude+", "+longitude+")\n"
+                +"Reward: "+reward+"\n"
+                +"Type: "+type;
+    }
+
+    @Override
+    public int hashCode() {
+        return key.hashCode();
     }
 }
