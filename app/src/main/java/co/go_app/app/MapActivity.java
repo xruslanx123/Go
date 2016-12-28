@@ -103,6 +103,7 @@ public class MapActivity extends FragmentActivity implements
     private ArrayList<Challenge> myChallenges;
     private ChallengeListArrayAdapter listAdapter;
     private LatLng lastLatLng;
+    private String currentUserKey;
 
 
     private static final String TAG = "MapActivity";
@@ -130,9 +131,10 @@ public class MapActivity extends FragmentActivity implements
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (!dataSnapshot.exists()) {
-                    userRed.push(currentUser);
+                    currentUserKey = userRed.push(currentUser).getKey();
                 }else{
                     currentUser = dataSnapshot.getValue(User.class);
+                    currentUserKey = dataSnapshot.getKey();
                 }
             }
 
@@ -685,8 +687,9 @@ public class MapActivity extends FragmentActivity implements
             intent.putExtra("REWARD", savedData.reward);
             intent.putExtra("TYPE", savedData.type);
             startActivityForResult(intent, NEW_CHALLENGE_REQUEST_CODE);
+        }else{
+            super.onBackPressed();
         }
-        super.onBackPressed();
     }
 
     @Override
