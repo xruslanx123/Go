@@ -72,7 +72,7 @@ public class MapActivity extends FragmentActivity implements
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
         GoogleMap.OnMapClickListener {
-
+    public static final int METERS_FOR_LIST_LOCATION_UPDATE = 20;
     public static final int NEW_CHALLENGE_REQUEST_CODE = 101;
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
@@ -95,11 +95,14 @@ public class MapActivity extends FragmentActivity implements
     private Challenge savedData, selectedChallenge;
     private Marker selectedMarker;
     private LinearLayout infoWindowButtons;
-    private FirebaseUser currentUser;
+    private User currentUser;
     private Bitmap userPhoto;
     private ImageView acctPhotoHolder;
+    private ListView nearbyChallengesListView;
     private ListView myChallengesListView;
     private ArrayList<Challenge> myChallenges;
+    private ChallengeListArrayAdapter listAdapter;
+    private LatLng lastLatLng;
 
 
     private static final String TAG = "MapActivity";
@@ -110,23 +113,46 @@ public class MapActivity extends FragmentActivity implements
         setContentView(R.layout.activity_map);
 
         // check for user authentication and get info;
-        // if no authentication is available close this activity and return to LoginActivity.
-        currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if(currentUser == null){
+        // if no authentication is available close this activity and return to LoginActivity
+        
+        if(FirebaseAuth.getInstance().getCurrentUser() == null){
             startActivity(new Intent(this, LoginActivity.class));
             finish();
+            return;
         }
+        //check if user exists in database.
+        //get it if exists, otherwise push it.
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+        FBUserRef = FirebaseAuth.getInstance().getCurrentUser();
+        currentUser = new User(FBUserRef.getUId, FBUserRef.getphotoUrl, FBUserRef.getEmail());
+        DatabaseReference usersRef = mDatabase.child("users");
+        usersRef.orederByChild("UID").equalTo(currentUser.getUId()).addListenerForSingleValueEvent(new ValueEventListener) {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (!dataSnapshot.exists()) {
+                    userRed.push(currentUser);
+                }else{
+                    currentUser = dataSnapshot.getValue(User.class);
+                }
+            }
+
+            @Override
+            public void onCancelled(FirebaseError firebaseError) {
+
+            }
+        });
+                        
         // set account info for acct_settings
         acctPhotoHolder = (ImageView) findViewById(R.id.acct_photo);
         TextView acctName = (TextView)findViewById(R.id.acct_name);
         acctName.setText(currentUser.getDisplayName());
         checkPhoto(true);
+        
 
         firstLocation = true; // boolean to center map on location on startUp;
 
         mMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mMapFragment.getMapAsync(this);
-        mDatabase = FirebaseDatabase.getInstance().getReference();
         mMarkers = new HashMap<>();
         thisActivity = this;
         toolbarArrowImg = (ImageView) findViewById(R.id.toolbar_arrow_img);
@@ -146,6 +172,10 @@ public class MapActivity extends FragmentActivity implements
                 }
             }
         });
+        // create ListViews for nearbyChallenges and myChallenges.
+        nearbyChallengesListView = (ListView) findViewById(R.id.nearby_list);
+        myChallengesListView = (ListView) findViewById(R.id.my_list);
+        
         changeLocationForNewChallengeBtn = (Button) findViewById(R.id.set_location_map_button);
         changeLocationForNewChallengeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -218,6 +248,21 @@ public class MapActivity extends FragmentActivity implements
                 .setIndicator(widgetButtons.get(4))
                 .setContent(R.id.settings));
         tabHost.setCurrentTab(2);
+        tabHost.setOnTabChangedListener(new setOnTabChangedListener(){
+                @Override
+                public void onTabChanged(String tabId) {
+                    if(tabId.equals("NEARBY")) {
+                        listAdapter.setmyChallengesMode(false);
+                        myChallengesListView.setAdapter = null;
+                        nearbyChallengesListView.setAdapter = listAdapter;
+                    }
+                    if(tabId.equals("MY")) {
+                        listAdapter.setChallengesList(myChallenges);
+                        listAdapter.setmyChallengesMode(true);
+                        myChallengesListView.setAdapter = listListener;
+                        nearbyChallengesListView.setAdapter = null;
+                    }
+        });
         View.OnClickListener clickListener = new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -320,9 +365,17 @@ public class MapActivity extends FragmentActivity implements
         if(firstLocation){
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 17));
             firstLocation = false;
-        }
-        if (mGoogleApiClient != null) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+            lastLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+        }else{
+            if (mGoogleApiClient != null) {
+                LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+            }
+            if(listAdapter != null && !listAdapter.isMyChallengesMode()){
+                  if(last
+            }
+            if(distFrom(lastLatLng.latitude, lastLatLng.longitude, location.getLatitude(), location.getLongitude()) > METERS_FOR_LIST_LOCATION_UPDATE){
+                listAdapter.setChallengesList(updateAdapterLocation());       
+            }
         }
     }
 
@@ -402,7 +455,7 @@ public class MapActivity extends FragmentActivity implements
         challenge.setKey(ref.getKey());
         ref.setValue(challenge);
     }
-
+    // TODO: create update method to get only nearby challenges on map.
     private void fetchChallenges(final boolean deleteAll) {
         ChildEventListener childEventListener = new ChildEventListener() {
             @Override
@@ -412,42 +465,47 @@ public class MapActivity extends FragmentActivity implements
                 if (deleteAll) {
                     dataSnapshot.getRef().removeValue();
                 } else {
+                    
                     // A new challenge has been added, add it to the displayed list.
                     Challenge challenge = dataSnapshot.getValue(Challenge.class);
-                    // Add it to the map.
-                    MarkerOptions markerOptions = new MarkerOptions();
-                    markerOptions.position(challenge.retrieveLatLng());
-                    markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
-                    mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+                    //get challenges in visable radius.
+                    VisibleRegion vrBounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                    if(vrBounds.contains(new LatLng(challenge.retrieveLatLng())){
+                            // Add it to the map.
+                            MarkerOptions markerOptions = new MarkerOptions();
+                            markerOptions.position(challenge.retrieveLatLng());
+                            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
+                            mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() { // TODO: put listener in OnMapReady()
 
-                        @Override
-                        public View getInfoWindow(final Marker marker) {
-                            if(marker.equals(mPlusMarker)){
-                                createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
-                                mPlusMarker.remove();
-                                mPlusMarker = null;
-                                return null;
-                            }else if(marker.equals(newChallengePointer)){
-                                return null;
-                            }
-                            selectedChallenge = mMarkers.get(marker);
-                            View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
-                            ((TextView)view.findViewById(R.id.challenge_title)).setText(selectedChallenge.getTitle());
-                            ((TextView)view.findViewById(R.id.challenge_description)).setText(selectedChallenge.getDescription());
-                            ((TextView)view.findViewById(R.id.challenge_creator)).setText(selectedChallenge.getCreator());
-                            ((TextView)view.findViewById(R.id.challenge_points_reward)).setText(String.valueOf(selectedChallenge.getReward()));
-                            view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
-                            selectedMarker = marker;
-                            return view;
-                        }
+                                @Override
+                                public View getInfoWindow(final Marker marker) {
+                                    if(marker.equals(mPlusMarker)){
+                                        createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
+                                        mPlusMarker.remove();
+                                        mPlusMarker = null;
+                                        return null;
+                                    }else if(marker.equals(newChallengePointer)){
+                                        return null;
+                                    }
+                                    selectedChallenge = mMarkers.get(marker);
+                                    View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
+                                    ((TextView)view.findViewById(R.id.challenge_title)).setText(selectedChallenge.getTitle());
+                                    ((TextView)view.findViewById(R.id.challenge_description)).setText(selectedChallenge.getDescription());
+                                    ((TextView)view.findViewById(R.id.challenge_creator)).setText(selectedChallenge.getCreator());
+                                    ((TextView)view.findViewById(R.id.challenge_points_reward)).setText(String.valueOf(selectedChallenge.getReward()));
+                                    view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
+                                    selectedMarker = marker;
+                                    return view;
+                                }
 
-                        @Override
-                        public View getInfoContents(Marker marker) {
-                            return null;
-                        }
-                    });
-                    mMarker = mMap.addMarker(markerOptions);
-                    mMarkers.put(mMarker, challenge);
+                                @Override
+                                public View getInfoContents(Marker marker) {
+                                    return null;
+                                }
+                            });
+                            mMarker = mMap.addMarker(markerOptions);
+                            mMarkers.put(mMarker, challenge); // TODO: add camera movment listener to update/fetch challenges using this method.
+                    }
                 }
             }
 
@@ -646,6 +704,7 @@ public class MapActivity extends FragmentActivity implements
                 userPhoto = BitmapFactory.decodeFile(filePath);
                 userPhotoAvalible = true;
                 acctPhotoHolder.setImageBitmap(userPhoto);
+                userPhoto = null;
                 return;
             }
         }
@@ -680,14 +739,25 @@ public class MapActivity extends FragmentActivity implements
                 userPhoto = bitmap;
                 userPhotoAvalible = true;
                 acctPhotoHolder.setImageBitmap(userPhoto);
+                userPhoto = null;
             }
         };
         photoPullAsync.execute(currentUser.getPhotoUrl().toString());
+        
     }
 
     private void setMyChallengesTab(){
         myChallengesListView = (ListView) findViewById(R.id.my_list);
         myChallengesListView.setAdapter(new ChallengeListArrayAdapter(thisActivity, myChallenges, true));
+    }
+
+    //get challenges to ArrayList from the HashMap-mMarkers.
+    public ArrayList<Challenge> updateAdapterLocation(){
+        Arraylist<Challenge> list = new ArrayList<>();
+        for(Entry<Marker, Challenge> entry: mMarkers){
+            list.add(entry.getValue());
+        }
+        return list;
     }
 
 
