@@ -35,7 +35,17 @@ public class NewChallengeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_challenge);
-
+        //set OnClickListeners to the type buttons.
+        OnClickListener typeClickListener = new OnClickListener({
+            public void onClick(View v) {
+                type = (int)v.getTag();
+            }
+        });
+        typeSingle.setOnClickListener(typeClickListener);
+        typeSpread.setOnClickListener(typeClickListener);
+        typeLinear.setOnClickListener(typeClickListener);
+        
+        
         titleInput = (EditText) findViewById(R.id.new_challenge_title);
         titleInput.addTextChangedListener(new TextWatcher() {
             @Override
