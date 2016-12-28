@@ -29,6 +29,19 @@ public class ChallengeListArrayAdapter extends ArrayAdapter {
         this.challengesList = challengesList;
         this.myChallenges = myChallenges;
     }
+    public void setMyChallengesMode(boolean mode){
+        myChallenges = mode;
+        if(!mode){
+           challengesList = new ArrayList<Challenge>();
+        }
+    }
+    public isMyChallengesMode(){
+        return myChallenges;   
+    }
+    
+    public void setChallengesList(ArrayList<Challenge> challengesList){
+        this.challengesList = challengesList;   
+    }
 
     public void updateLocation(Location location){
         this.currentLocation = location;
