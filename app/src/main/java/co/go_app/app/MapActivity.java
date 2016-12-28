@@ -213,23 +213,24 @@ public class MapActivity extends FragmentActivity implements
         widgetButtons = new ArrayList<>();
         ImageView img = new ImageView(this);
         img.setTag(0);
-        img.setImageResource(R.drawable.idle_temp_white);
+        img.setImageResource(R.drawable.profile);
         widgetButtons.add(img);
         img = new ImageView(this);
         img.setTag(1);
-        img.setImageResource(R.drawable.idle_temp_white);
+        img.setImageResource(R.drawable.location);
         widgetButtons.add(img);
         img = new ImageView(this);
         img.setTag(2);
-        img.setImageResource(R.drawable.pressed_temp);
+        img.setImageResource(R.drawable.my);
+        img.setColorFilter(Color.argb(255, 158, 231, 164));
         widgetButtons.add(img);
         img = new ImageView(this);
         img.setTag(3);
-        img.setImageResource(R.drawable.idle_temp_white);
+        img.setImageResource(R.drawable.plus);
         widgetButtons.add(img);
         img = new ImageView(this);
         img.setTag(4);
-        img.setImageResource(R.drawable.idle_temp_white);
+        img.setImageResource(R.drawable.settings);
         widgetButtons.add(img);
 
         tabHost.addTab(tabHost.newTabSpec("ACCT_SETTINGS")
@@ -268,9 +269,11 @@ public class MapActivity extends FragmentActivity implements
             public void onClick(View view) {
                 for(ImageView img: widgetButtons){
                     img.setImageResource(R.drawable.idle_temp_white);
+                    img.clearColorFilter();
                 }
                 tabHost.setCurrentTab((int)view.getTag());
                 ((ImageView)view).setImageResource(R.drawable.pressed_temp);
+                ((ImageView)view).setColorFilter(Color.argb(255, 158, 231, 164));
             }
         };
         tabWidget.getChildAt(0).setOnClickListener(clickListener);
