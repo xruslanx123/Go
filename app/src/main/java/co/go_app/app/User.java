@@ -14,6 +14,21 @@ public class User {
     private ArrayList<String> acceptedChallenges;
     private ArrayList<String> createdChallenges;
     
+    public User(){
+        
+    }
+    public User(String uID, String photoUrl, String emailAddress){
+        this.uID = uID;
+        this.photoUrl = photoUrl;
+        this.emailAddress = emailAddress;
+    }
+    
+    public User(String uID, String photoUrl, String emailAddress, ArrayList<String> acceptedChallenges, ArrayList<String> createdChallenges){
+        this(uID, photoUrl, emailAddress);
+        this.acceptedChallenges = acceptedChallenges;
+        this.createdChallenges = createdChallenges;
+    }
+    
     //setters
     public void setUID(String uID){
         this.uID = uID;
