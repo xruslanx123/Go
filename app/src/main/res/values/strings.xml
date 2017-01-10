@@ -11,11 +11,14 @@
     <string name="no_location">no location</string>
     <string name="description">Description:</string>
     <string name="set_location">Set Location</string>
+    <string name="km_symbol">km</string>
+    <string name="m_symbol">m</string>
 
     <string name="progress_dialog_signing_up">Creating your shiny new account...</string>
 
     <string name="facebook_application_id" translatable="false">192853844511465</string>
     <string name="facebook_login_protocol_scheme" translatable="false">fb192853844511465</string>
+    <string name="sign_out">Sign Out</string>
 
 
 </resources>

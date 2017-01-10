@@ -36,13 +36,16 @@ public class NewChallengeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_new_challenge);
         //set OnClickListeners to the type buttons.
-        OnClickListener typeClickListener = new OnClickListener({
+        View.OnClickListener typeClickListener = new View.OnClickListener(){
             public void onClick(View v) {
-                type = (int)v.getTag();
+                type = Integer.valueOf((String) v.getTag());
             }
-        });
+        };
+        typeSingle = (Button) findViewById(R.id.type_single);
         typeSingle.setOnClickListener(typeClickListener);
+        typeSpread = (Button) findViewById(R.id.type_spread);
         typeSpread.setOnClickListener(typeClickListener);
+        typeLinear = (Button) findViewById(R.id.type_linear);
         typeLinear.setOnClickListener(typeClickListener);
         
         
@@ -160,10 +163,9 @@ public class NewChallengeActivity extends AppCompatActivity {
             type = getIntent().getIntExtra("TYPE", 1);
         }
 
-
-
-
     }
+
+
 
     private String printLatLng(double latitude, double longitude){
         return "("+latitude+", "+longitude+")";
@@ -202,9 +204,5 @@ public class NewChallengeActivity extends AppCompatActivity {
     public void onBackPressed() {
         setResult(RESULT_CANCELED);
         super.onBackPressed();
-    }
-
-    public void typeChangeBtn(View view) {
-        type = Integer.valueOf(view.getTag().toString());
     }
 }

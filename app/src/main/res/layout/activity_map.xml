@@ -115,6 +115,12 @@
                             android:id="@+id/acct_photo"
                             sothree:civ_border_width="2dp"
                             sothree:civ_border_color="@color/grey"/>
+                        <Button
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/sign_out"
+                            android:layout_alignParentEnd="true"
+                            android:id="@+id/sign_out_btn"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -126,14 +132,19 @@
                             android:layout_toEndOf="@id/acct_photo"
                             android:layout_alignBottom="@id/acct_photo"/>
                     </RelativeLayout>
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:id="@+id/nearby_list"/>
                     <ListView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:id="@+id/my_list"/>
+                        android:id="@+id/nearby_list"/>
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:id="@+id/my_list">
+                        <ListView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:id="@+id/my_challenges_list"/>
+                    </RelativeLayout>
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"

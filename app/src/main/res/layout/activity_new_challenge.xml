@@ -30,6 +30,8 @@
                 <EditText
                     android:id="@+id/new_challenge_title"
                     android:layout_width="0dp"
+                    android:inputType="textCapSentences"
+                    android:maxLines="1"
                     android:layout_height="wrap_content"
                     android:layout_weight="2"/>
             </LinearLayout>
@@ -73,21 +75,21 @@
                     android:layout_height="wrap_content"
                     android:text="Single"
                     android:tag="1"
-                    android:onClick="typeChangeBtn"/>
+                    android:id="@+id/type_single" />
                 <Button
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
                     android:tag="2"
                     android:text="Spread"
-                    android:onClick="typeChangeBtn"/>
+                    android:id="@+id/type_spread" />
                 <Button
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:layout_height="wrap_content"
                     android:text="Linear"
                     android:tag="3"
-                    android:onClick="typeChangeBtn"/>
+                    android:id="@+id/type_linear" />
             </LinearLayout>
 
             <LinearLayout

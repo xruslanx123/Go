@@ -6,7 +6,7 @@ import android.location.LocationManager;
 import com.google.android.gms.maps.model.LatLng;
 
 /**
- * Created by Anis on Dec 8.
+ * Created by Ruslan on Dec 8.
  */
 
 public class Challenge {
@@ -35,6 +35,7 @@ public class Challenge {
                      Integer type) {
         this.key = "";
         this.creator = creator;
+        this.creatorId = creatorId;
         this.latitude = latitude;
         this.longitude = longitude;
         this.title = title;

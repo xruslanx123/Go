@@ -12,7 +12,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 
 /**
- * Created by booni on 08/12/2016.
+ * Created by Ruslan on 08/12/2016.
  */
 
 public class ChallengeListArrayAdapter extends ArrayAdapter {
@@ -21,32 +21,19 @@ public class ChallengeListArrayAdapter extends ArrayAdapter {
     private ArrayList<Challenge> challengesList;
     private Location currentLocation;
     private long updateTimeStapm;
-    private boolean myChallenges;
 
-    public ChallengeListArrayAdapter(Activity activity, ArrayList<Challenge> challengesList, boolean myChallenges) {
+    public ChallengeListArrayAdapter(Activity activity, ArrayList<Challenge> challengesList) {
         super(activity, R.layout.challenge_list_item, challengesList);
         this.activity = activity;
         this.challengesList = challengesList;
-        this.myChallenges = myChallenges;
     }
-    public void setMyChallengesMode(boolean mode){
-        myChallenges = mode;
-        if(!mode){
-           challengesList = new ArrayList<Challenge>();
-        }
-    }
-    public isMyChallengesMode(){
-        return myChallenges;   
-    }
-    
-    public void setChallengesList(ArrayList<Challenge> challengesList){
-        this.challengesList = challengesList;   
-    }
+
 
     public void updateLocation(Location location){
         this.currentLocation = location;
         updateTimeStapm = System.currentTimeMillis();
     }
+
 
     @NonNull
     @Override
@@ -65,24 +52,22 @@ public class ChallengeListArrayAdapter extends ArrayAdapter {
             viewContainer = (ViewContainer) convertView.getTag();
         }
         viewContainer.creator.setText(challengesList.get(position).creator);
-        if (myChallenges){
-            viewContainer.distance.setVisibility(View.GONE);
-        } else {
-            viewContainer.distance.setVisibility(View.VISIBLE);
-            if (viewContainer.updateTimeStamp < updateTimeStapm) {
-                Location challengeLoc = challengesList.get(position).retrieveLocation();
-                double distanceMeters = distFrom(challengeLoc.getLatitude(), challengeLoc.getLongitude(),
-                        currentLocation.getLatitude(), currentLocation.getLongitude());
-                String distanceText = "m";
-                if (distanceMeters >= 1000) {
-                    distanceMeters /= 1000;
-                    distanceText = "km";
-                }
-                distanceText = new DecimalFormat("##.#").format(distanceMeters) + distanceText;
-                viewContainer.distance.setText(distanceText);
-                viewContainer.updateTimeStamp = System.currentTimeMillis();
+
+        viewContainer.distance.setVisibility(View.VISIBLE);
+        if (viewContainer.updateTimeStamp < updateTimeStapm) {
+            Location challengeLoc = challengesList.get(position).retrieveLocation();
+            double distanceMeters = distFrom(challengeLoc.getLatitude(), challengeLoc.getLongitude(),
+                    currentLocation.getLatitude(), currentLocation.getLongitude());
+            String distanceText = activity.getString(R.string.m_symbol);
+            if (distanceMeters >= 1000) {
+                distanceMeters /= 1000;
+                distanceText = activity.getString(R.string.km_symbol);
             }
+            distanceText = new DecimalFormat("##.#").format(distanceMeters) + distanceText;
+            viewContainer.distance.setText(distanceText);
+            viewContainer.updateTimeStamp = System.currentTimeMillis();
         }
+
         viewContainer.title.setText(challengesList.get(position).getTitle());
         viewContainer.description.setText(challengesList.get(position).getDescription());
         viewContainer.reward.setText(challengesList.get(position).getReward());
