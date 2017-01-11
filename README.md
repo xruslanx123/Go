@@ -8,9 +8,9 @@ Environmental and Social Challenges Platform- Soon Will Be Availible For Android
 
  This app is developed to provide a platform for challenges and guides on the map for people to use and create.
  We want to let people enjoy their events, activities and their everyday life with challenges and combine it with the
- ability to invent and create their own challenges or even simple guides for informaion to share them with other users.
- We belive that this will improve the social lives and the knowlage about different thing and locations, 
- and hope to achive the perfect state in which 'Go!' becomes most generic and will provide its services for all kinds of.   interests and ideas.
+ ability to invent and create their own challenges, or even simple guides for informaion to share them with other users.
+ We belive that this will improve the social lives and the knowlage of different thing and places, 
+ and hope to achive the perfect state in which 'Go!' becomes most generic and will provide its services for all kinds of interests and ideas.
  
  Here is a list of what you could do with Go!:
  
