@@ -78,11 +78,13 @@ public class MapActivity extends FragmentActivity implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
-        GoogleMap.OnMapClickListener {
+        GoogleMap.OnMapClickListener,
+        OnCameraMoveListener{
 
     public static final int METERS_FOR_LIST_LOCATION_UPDATE = 20;
     public static final int NEW_CHALLENGE_REQUEST_CODE = 101;
     public static final float TABHOST_IMAGE_SCALE = 0.65f;
+    public static final double BOUNDS_FOR_MARKER_UPDATES = 1.2;
 
     private GoogleMap mMap;
     private SupportMapFragment mMapFragment;
@@ -114,6 +116,7 @@ public class MapActivity extends FragmentActivity implements
     private ChallengeListArrayAdapter listAdapter;
     private LatLng lastLatLng;
     private String currentUserKey;
+    private GeoFire geoFire;
 
 
     private static final String TAG = "MapActivity";
@@ -155,9 +158,6 @@ public class MapActivity extends FragmentActivity implements
                 Log.e("E", "userDataLoad:onCancelled", databaseError.toException());
             }
         });
-        for (String s: currentUser.getAcceptedChallenges()){
-            System.out.println(s);
-        }
 
 
         // set account info for acct_settings
@@ -190,6 +190,10 @@ public class MapActivity extends FragmentActivity implements
                 }
             }
         });
+        //setup geofire reference:
+        DatabaseReference geoRef = FirebaseDatabase.getInstance().getReference("path/to/geofire");
+        geoFire = new GeoFire(geoRef);
+            
         // create ListViews for nearbyChallenges and myChallenges.
         myChallenges = new ArrayList<>();
         for(int i = 0; i < currentUser.getAcceptedChallenges().size(); i++){
@@ -465,6 +469,7 @@ public class MapActivity extends FragmentActivity implements
         challenge.setKey(key);
         ref.setValue(challenge);
         currentUser.addCreatedChallenge(key, mDatabase.child("users").child(currentUser.getuID()));
+        geoFire.setLocation(key, new GeoLocation(challenge.getLatitude(), challenge.getLongitude()));
     }
     // TODO: create update method to get only nearby challenges on map.
     private void fetchChallenges(final boolean deleteAll) {
@@ -480,7 +485,7 @@ public class MapActivity extends FragmentActivity implements
                     // A new challenge has been added, add it to the displayed list.
                     Challenge challenge = dataSnapshot.getValue(Challenge.class);
                     //get challenges in visable radius.
-                    LatLngBounds vrBounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+                    LatLngBounds vrBounds = extendLatlngBoundsRadius(mMap.getProjection().getVisibleRegion().latLngBounds, BOUNDS_FOR_MARKER_UPDATES);
                     if(vrBounds.contains(challenge.retrieveLatLng())){
                             // Add it to the map.
                             MarkerOptions markerOptions = new MarkerOptions();
@@ -594,6 +599,12 @@ public class MapActivity extends FragmentActivity implements
             markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.new_challenge));
             mPlusMarker = mMap.addMarker(markerOptions);
         }
+    }
+         
+    @Override
+    public void onCameraMove() {
+        // TODO: use geofire to present markers on on map.
+        Iterable<DataSnapshot> children = mDatabase.child("challenges").getChildren();
     }
 
     private void createNewChallenge(){
@@ -832,5 +843,13 @@ public class MapActivity extends FragmentActivity implements
             selectedMarker.hideInfoWindow();
         selectedChallenge = null;
         selectedMarker = null;
+    }
+    // TODO: try to make this method return void and change the existing LatLngBounds object.
+    public LatLngBounds extendLatLngBoundsRadius(LatLngBounds bounds, double dRadius) {
+        double radius = ChallengeListArrayAdapter.distFrom(bounds.northeast.latitude, bounds.northeast.longitude, bounds.southwest.latitude, bounds.southwest.longitude)/2;
+        radius *= dRadius;
+        LatLng southwest = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 225);
+        LatLng northeast = SphericalUtil.computeOffset(center, radius * Math.sqrt(2.0), 45);
+        return new LatLngBounds(southwest, northeast);
     }
 }
