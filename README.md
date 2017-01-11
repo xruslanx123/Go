@@ -16,12 +16,9 @@ Environmental and Social Challenges Platform- Soon Will Be Availible For Android
  
  Create simple challenges.
  
- 
  Make guides/tours to share your knowlage about locations or informatiom about places.
  
- 
  Create challenges for school trips, family vacations or social events(private, public or combined).
- 
  
  And most important invent your own ways of using this platform.
  
