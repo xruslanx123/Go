@@ -135,7 +135,7 @@ public class MapActivity extends FragmentActivity implements
         //get it if exists, otherwise push it.
         mDatabase = FirebaseDatabase.getInstance().getReference();
         FirebaseUser firebaseUserRef = FirebaseAuth.getInstance().getCurrentUser();
-        //TODO: set if statment to check if uID and photoURL are not null.
+        //TODO: set if statment to check if uID and photoURL are not null. use premade photos.
         currentUser = new User(firebaseUserRef.getUid(), firebaseUserRef.getPhotoUrl().toString(), firebaseUserRef.getEmail(), firebaseUserRef.getDisplayName());
         mDatabase.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
