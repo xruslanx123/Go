@@ -97,6 +97,7 @@ public class MapActivity extends FragmentActivity implements
     private SlidingUpPanelLayout slidingUpPanelLayout;
     private ImageView toolbarArrowImg, toolbarLogoImg;
     private HashMap<Marker, Challenge> mMarkers;
+    private HashMap<String, Marker> mMarkersByKeys;
     private Activity thisActivity;
     private boolean newChallengeMode = false;
     private Button changeLocationForNewChallengeBtn, signOutBtn;
@@ -114,7 +115,7 @@ public class MapActivity extends FragmentActivity implements
     private ListView myChallengesListView;
     private ArrayList<Challenge> myChallenges;
     private ChallengeListArrayAdapter listAdapter;
-    private LatLng lastLatLng;
+    private LatLng lastCameraLatLng;
     private String currentUserKey;
     private GeoFire geoFire;
 
@@ -470,85 +471,7 @@ public class MapActivity extends FragmentActivity implements
         ref.setValue(challenge);
         currentUser.addCreatedChallenge(key, mDatabase.child("users").child(currentUser.getuID()));
         geoFire.setLocation(key, new GeoLocation(challenge.getLatitude(), challenge.getLongitude()));
-    }
-    // TODO: create update method to get only nearby challenges on map.
-    private void fetchChallenges(final boolean deleteAll) {
-        ChildEventListener childEventListener = new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String previousChildName) {
-                Log.d(TAG, "onChildAdded:" + dataSnapshot.getKey());
-
-                if (deleteAll) {
-                    dataSnapshot.getRef().removeValue();
-                } else {
-                    
-                    // A new challenge has been added, add it to the displayed list.
-                    Challenge challenge = dataSnapshot.getValue(Challenge.class);
-                    //get challenges in visable radius.
-                    LatLngBounds vrBounds = extendLatlngBoundsRadius(mMap.getProjection().getVisibleRegion().latLngBounds, BOUNDS_FOR_MARKER_UPDATES);
-                    if(vrBounds.contains(challenge.retrieveLatLng())){
-                            // Add it to the map.
-                            MarkerOptions markerOptions = new MarkerOptions();
-                            markerOptions.position(challenge.retrieveLatLng());
-                            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
-                            mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() { // TODO: put listener in OnMapReady()
-
-                                @Override
-                                public View getInfoWindow(final Marker marker) {
-                                    if(marker.equals(mPlusMarker)){
-                                        createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
-                                        mPlusMarker.remove();
-                                        mPlusMarker = null;
-                                        return null;
-                                    }else if(marker.equals(newChallengePointer)){
-                                        return null;
-                                    }
-                                    selectedChallenge = mMarkers.get(marker);
-                                    View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
-                                    ((TextView)view.findViewById(R.id.challenge_title)).setText(selectedChallenge.getTitle());
-                                    ((TextView)view.findViewById(R.id.challenge_description)).setText(selectedChallenge.getDescription());
-                                    ((TextView)view.findViewById(R.id.challenge_creator)).setText(selectedChallenge.getCreator());
-                                    ((TextView)view.findViewById(R.id.challenge_points_reward)).setText(String.valueOf(selectedChallenge.getReward()));
-                                    view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
-                                    selectedMarker = marker;
-                                    return view;
-                                }
-
-                                @Override
-                                public View getInfoContents(Marker marker) {
-                                    return null;
-                                }
-                            });
-                            mMarker = mMap.addMarker(markerOptions);
-                            mMarkers.put(mMarker, challenge); // TODO: add camera movment listener to update/fetch challenges using this method.
-                    }
-                }
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                Log.d(TAG, "TODO: onChildChanged()");
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-                Log.d(TAG, "TODO: onChildRemoved()");
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-                Log.d(TAG, "TODO: onChildMoved()");
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.d(TAG, "TODO: onCancelled()");
-            }
-        };
-
-        Query challenges = mDatabase.child("challenges");
-        challenges.addChildEventListener(childEventListener);
-    }
+    }// TODO: add 'delete' button for users to delete a challenge they created.
 
     @Override
     public boolean onMarkerClick(Marker marker) {
@@ -602,9 +525,74 @@ public class MapActivity extends FragmentActivity implements
     }
          
     @Override
-    public void onCameraMove() {
-        // TODO: use geofire to present markers on on map.
-        Iterable<DataSnapshot> children = mDatabase.child("challenges").getChildren();
+    public void onCameraIdle() {
+        LatLng center = mMap.getCameraPosition().target;
+        if(METERS_FOR_LIST_LOCATION_UPDATE < ChallengeListArrayAdapter.distFrom(center.latitude, center.longitude, lastCameraLatLng.latitude, lastCameraLatLng.longitude)){
+                lastCameraLatLng = new LatLng(center.latitude, center.longitude);
+                GeoQuery geoQuery = geoFire.queryAtLocation(new GeoLocation(center.latitude, center.logitude), getRadius(mMap.getProjection().getVisibleRegion())*BOUNDS_FOR_MARKER_UPDATES);
+                geoQuery.addGeoQueryEventListener(new GeoQueryEventListener() {
+                    @Override
+                    public void onKeyEntered(String key, GeoLocation location) {
+                        mDatabase.child("challenges").child(key).addListenerForSingleValueEvent(new ValueEventListener() {    
+                            @Override
+                            public void onDataChange(DataSnapshot snapshot) {
+                                Challenge challenge = snapshot.getValue(Challenge.class);
+                                MarkerOptions markerOptions = new MarkerOptions();
+                                markerOptions.position(challenge.retrieveLatLng());
+                                markerOptions.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.icon)));
+                                mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() { // TODO: put listener in OnMapReady()
+
+                                    @Override
+                                    public View getInfoWindow(final Marker marker) {
+                                        if(marker.equals(mPlusMarker)){
+                                            createNewChallenge(marker.getPosition().latitude, marker.getPosition().longitude);
+                                            mPlusMarker.remove();
+                                            mPlusMarker = null;
+                                            return null;
+                                        }else if(marker.equals(newChallengePointer)){
+                                            return null;
+                                        }
+                                        selectedChallenge = mMarkers.get(marker);
+                                        View view = thisActivity.getLayoutInflater().inflate(R.layout.challenge_map_item, null);
+                                        ((TextView)view.findViewById(R.id.challenge_title)).setText(selectedChallenge.getTitle());
+                                        ((TextView)view.findViewById(R.id.challenge_description)).setText(selectedChallenge.getDescription());
+                                        ((TextView)view.findViewById(R.id.challenge_creator)).setText(selectedChallenge.getCreator());
+                                        ((TextView)view.findViewById(R.id.challenge_points_reward)).setText(String.valueOf(selectedChallenge.getReward()));
+                                        view.findViewById(R.id.challenge_distance).setVisibility(View.GONE);
+                                        selectedMarker = marker;
+                                        return view;
+                                    }
+
+                                    @Override
+                                    public View getInfoContents(Marker marker) {
+                                        return null;
+                                    }
+                                });
+                                mMarker = mMap.addMarker(markerOptions);
+                                mMarkers.put(mMarker, challenge);
+                                mMarkersByKeys.put(key, mMarker);
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {}
+                        });
+                        
+                    }
+
+                    @Override
+                    public void onKeyExited(String key) {
+                        Marker markerToRemove = mMarkersByKeys.get(key);
+                        mMarkers.remove(markerToRemove);
+                        markerToRemove.remove();
+                        mMarkersByKeys.remove(key);
+                    }
+
+                    @Override
+                    public void onGeoQueryError(DatabaseError error) {
+                        Log.e("E", "There was an error with this query: "+ error);
+                    }
+               });
+        }
     }
 
     private void createNewChallenge(){
@@ -813,7 +801,6 @@ public class MapActivity extends FragmentActivity implements
             mMap.setMyLocationEnabled(true);
         }
 
-        fetchChallenges(false);
         mMap.setOnMapClickListener(this);
         mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
             @Override
@@ -843,6 +830,9 @@ public class MapActivity extends FragmentActivity implements
             selectedMarker.hideInfoWindow();
         selectedChallenge = null;
         selectedMarker = null;
+    }
+    public double getRadius(LatLngBounds bounds){
+        return ChallengeListArrayAdapter.distFrom(bounds.northeast.latitude, bounds.northeast.longitude, bounds.southwest.latitude, bounds.southwest.longitude)/2;
     }
     // TODO: try to make this method return void and change the existing LatLngBounds object.
     public LatLngBounds extendLatLngBoundsRadius(LatLngBounds bounds, double dRadius) {
