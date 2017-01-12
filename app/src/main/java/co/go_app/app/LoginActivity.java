@@ -49,7 +49,6 @@ public class LoginActivity extends Activity {
                 this.finishAffinity();
             }
             else{
-                System.out.println("else");
                 startLogin();
             }
         }
