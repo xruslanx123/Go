@@ -733,7 +733,7 @@ public class MapActivity extends FragmentActivity implements
 
     private void checkPhoto(boolean checkInMemory){
         if(checkInMemory) {
-            String filePath = Environment.getExternalStorageDirectory() + File.separator+"Android"+File.separator+"data"+File.separator+"co.app-go"+File.separator+"upBM.bm";
+            String filePath = getBaseContext().getFilesDir().getPath() +File.separator+"data"+File.separator+"co.app-go"+File.separator+"upBM.bm";
             File photoFile = new File(filePath);
             if(photoFile.exists()){
                 userPhoto = BitmapFactory.decodeFile(filePath);
@@ -749,7 +749,6 @@ public class MapActivity extends FragmentActivity implements
             @Override
             protected Bitmap doInBackground(String... strings) {
                 try {
-                    System.out.println("get photo from url");
                     URL url = new URL(strings[0]);
                     URLConnection connection = url.openConnection();
                     connection.connect();
